@@ -1,0 +1,197 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens. Components only use these semantic names (bg-panel, text-ink-2, shadow-raised…),
+ * so a theme is a single block of values below. The OLED display stays dark in both themes on
+ * purpose — a black glass screen on a light body is part of the product's look.
+ */
+@theme {
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --color-page: var(--pf-page);
+  --color-chassis: var(--pf-chassis);
+  --color-panel: var(--pf-panel);
+  --color-raised: var(--pf-raised);
+  --color-inset: var(--pf-inset);
+  --color-line: var(--pf-line);
+  --color-line-strong: var(--pf-line-strong);
+  --color-ink: var(--pf-ink);
+  --color-ink-2: var(--pf-ink-2);
+  --color-ink-3: var(--pf-ink-3);
+  --color-accent: var(--pf-accent);
+  --color-accent-ink: var(--pf-accent-ink);
+  --color-display: #0a0b0d;
+  --color-phosphor: #10b981;
+
+  --shadow-panel: var(--pf-shadow-panel);
+  --shadow-raised: var(--pf-shadow-raised);
+  --shadow-well: var(--pf-shadow-well);
+  --shadow-glow: 0 14px 34px -14px var(--pf-accent-glow);
+
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Graphite (default) */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --pf-page: #08090b;
+  --pf-chassis: #0f1013;
+  --pf-panel: #15161a;
+  --pf-raised: #1c1e22;
+  --pf-inset: #0b0c0e;
+  --pf-line: rgb(255 255 255 / 0.065);
+  --pf-line-strong: rgb(255 255 255 / 0.13);
+  --pf-ink: #f4f4f3;
+  --pf-ink-2: #a6a6ad;
+  --pf-ink-3: #68686f;
+  --pf-accent: #ff5a1f;
+  --pf-accent-ink: #1a0700;
+  --pf-accent-glow: rgb(255 90 31 / 0.55);
+  --pf-shadow-panel: inset 0 1px 0 rgb(255 255 255 / 0.035), 0 24px 48px -30px rgb(0 0 0 / 0.9);
+  --pf-shadow-raised: inset 0 1px 0 rgb(255 255 255 / 0.055), 0 1px 2px rgb(0 0 0 / 0.45), 0 8px 18px -10px rgb(0 0 0 / 0.7);
+  --pf-shadow-well: inset 0 1px 3px rgb(0 0 0 / 0.55);
+  --pf-knob-hi: #3b3e45;
+  --pf-knob-lo: #191a1e;
+  --pf-knob-shadow: rgb(0 0 0 / 0.55);
+  --pf-track: rgb(255 255 255 / 0.08);
+  --pf-grid: rgb(255 255 255 / 0.035);
+  --pf-dim: rgb(8 9 11 / 0.66);
+  --pf-key-white: #2a2c31;
+  --pf-key-black: #131417;
+  --pf-cell: #17181c;
+  --pf-cell-alt: #121316;
+  --pf-note: #86efac;
+  --pf-note-ink: #052e16;
+}
+
+/* Cream */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --pf-page: #e8e4da;
+    --pf-chassis: #f2efe8;
+    --pf-panel: #faf8f4;
+    --pf-raised: #ffffff;
+    --pf-inset: #ebe7df;
+    --pf-line: rgb(40 32 20 / 0.08);
+    --pf-line-strong: rgb(40 32 20 / 0.16);
+    --pf-ink: #1b1a18;
+    --pf-ink-2: #5c5952;
+    --pf-ink-3: #9a958c;
+    --pf-accent: #f2541b;
+    --pf-accent-ink: #1a0700;
+    --pf-accent-glow: rgb(242 84 27 / 0.45);
+    --pf-shadow-panel: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 1px 2px rgb(60 48 30 / 0.05), 0 22px 44px -30px rgb(60 48 30 / 0.4);
+    --pf-shadow-raised: inset 0 1px 0 #ffffff, 0 1px 2px rgb(60 48 30 / 0.1), 0 8px 18px -12px rgb(60 48 30 / 0.3);
+    --pf-shadow-well: inset 0 1px 3px rgb(60 48 30 / 0.14);
+    --pf-knob-hi: #ffffff;
+    --pf-knob-lo: #dcd6cb;
+    --pf-knob-shadow: rgb(60 48 30 / 0.28);
+    --pf-track: rgb(40 32 20 / 0.1);
+    --pf-grid: rgb(40 32 20 / 0.06);
+    --pf-dim: rgb(235 231 223 / 0.78);
+    --pf-key-white: #ffffff;
+    --pf-key-black: #2a2926;
+    --pf-cell: #f4f1eb;
+    --pf-cell-alt: #e9e5dd;
+    --pf-note: #4ade80;
+    --pf-note-ink: #052e16;
+  }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --pf-page: #e8e4da;
+  --pf-chassis: #f2efe8;
+  --pf-panel: #faf8f4;
+  --pf-raised: #ffffff;
+  --pf-inset: #ebe7df;
+  --pf-line: rgb(40 32 20 / 0.08);
+  --pf-line-strong: rgb(40 32 20 / 0.16);
+  --pf-ink: #1b1a18;
+  --pf-ink-2: #5c5952;
+  --pf-ink-3: #9a958c;
+  --pf-accent: #f2541b;
+  --pf-accent-ink: #1a0700;
+  --pf-accent-glow: rgb(242 84 27 / 0.45);
+  --pf-shadow-panel: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 1px 2px rgb(60 48 30 / 0.05), 0 22px 44px -30px rgb(60 48 30 / 0.4);
+  --pf-shadow-raised: inset 0 1px 0 #ffffff, 0 1px 2px rgb(60 48 30 / 0.1), 0 8px 18px -12px rgb(60 48 30 / 0.3);
+  --pf-shadow-well: inset 0 1px 3px rgb(60 48 30 / 0.14);
+  --pf-knob-hi: #ffffff;
+  --pf-knob-lo: #dcd6cb;
+  --pf-knob-shadow: rgb(60 48 30 / 0.28);
+  --pf-track: rgb(40 32 20 / 0.1);
+  --pf-grid: rgb(40 32 20 / 0.06);
+  --pf-dim: rgb(235 231 223 / 0.78);
+  --pf-key-white: #ffffff;
+  --pf-key-black: #2a2926;
+  --pf-cell: #f4f1eb;
+  --pf-cell-alt: #e9e5dd;
+  --pf-note: #4ade80;
+  --pf-note-ink: #052e16;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--pf-page);
+  color: var(--pf-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.35s var(--ease-smooth), color 0.35s var(--ease-smooth);
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Installed app on phones: keep content clear of the notch and home indicator. */
+#root {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* No double-tap zoom on controls, so fast taps register as taps. In the base layer so the
+   knobs' and pads' own `touch-none` (drag instead of scroll) still wins. */
+@layer base {
+  button {
+    touch-action: manipulation;
+  }
+}
+
+@keyframes pf-toast {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pf-tip {
+  from {
+    opacity: 0;
+    scale: 0.96;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+::selection {
+  background: rgb(255 90 31 / 0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
