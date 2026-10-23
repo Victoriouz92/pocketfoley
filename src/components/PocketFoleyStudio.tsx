@@ -769,8 +769,8 @@ function Panel({
   className?: string;
 }) {
   return (
-    <section className={`relative rounded-[24px] border border-line bg-panel p-5 shadow-panel transition-colors duration-300 ${className}`}>
-      <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <section className={`relative rounded-[24px] border border-line bg-panel p-3.5 shadow-panel transition-colors duration-300 sm:p-5 ${className}`}>
+      <header className="mb-3 flex flex-wrap items-center justify-between gap-2 sm:mb-4 sm:gap-3">
         <h2 className="text-[12px] font-semibold tracking-[0.02em] text-ink">{title}</h2>
         {right}
       </header>
@@ -1904,6 +1904,7 @@ function OledVisualizer({ signalLedRef }: { signalLedRef: RefObject<HTMLSpanElem
     let h = 0;
     let raf = 0;
     let energy = 0;
+    let lastFrame = 0;
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
@@ -1920,8 +1921,11 @@ function OledVisualizer({ signalLedRef }: { signalLedRef: RefObject<HTMLSpanElem
     ro.observe(canvas);
     resize();
 
-    const draw = () => {
+    const draw = (now: number) => {
       raf = requestAnimationFrame(draw);
+      // The scope is decorative. A 30 fps cap leaves more time for live audio on phones.
+      if (now - lastFrame < 33) return;
+      lastFrame = now;
       if (w === 0 || h === 0) return;
 
       wave.fill(128);
@@ -2317,9 +2321,9 @@ function Studio({ initialRecipe }: { initialRecipe: SoundRecipe }) {
   const rollSteps = tracks[activeTrack]?.steps ?? EMPTY_STEPS;
   const activeDiv: StepDiv = tracks[activeTrack]?.div ?? 1;
   const rollState = useRef({ tracks, rollSteps, activeDiv, beats, bpm, loopRoll, lengthMode });
-  const rollTimers = useRef<number[]>([]);
+  const rollTimers = useRef(new Set<number>());
   const rollToken = useRef(0);
-  const playRollRef = useRef<(replace?: boolean) => Promise<void>>(async () => {});
+  const playRollRef = useRef<(replace?: boolean, startAt?: number) => Promise<void>>(async () => {});
 
   useEffect(() => {
     rollState.current = { tracks, rollSteps, activeDiv, beats, bpm, loopRoll, lengthMode };
@@ -2346,7 +2350,15 @@ function Studio({ initialRecipe }: { initialRecipe: SoundRecipe }) {
 
   const clearRollTimers = useCallback(() => {
     for (const id of rollTimers.current) window.clearTimeout(id);
-    rollTimers.current = [];
+    rollTimers.current.clear();
+  }, []);
+
+  const queueRollTimer = useCallback((action: () => void, delayMs: number) => {
+    const id = window.setTimeout(() => {
+      rollTimers.current.delete(id);
+      action();
+    }, Math.max(0, delayMs));
+    rollTimers.current.add(id);
   }, []);
 
   const stopRoll = useCallback(() => {
@@ -2410,7 +2422,7 @@ function Studio({ initialRecipe }: { initialRecipe: SoundRecipe }) {
   }, [getRender, showToast]);
 
   const playRoll = useCallback(
-    async (replace = true) => {
+    async (replace = true, startAt?: number) => {
       const token = ++rollToken.current;
       rollActive.current = true;
       let plan: Awaited<ReturnType<typeof buildMix>>;
@@ -2426,9 +2438,10 @@ function Studio({ initialRecipe }: { initialRecipe: SoundRecipe }) {
         return;
       }
       const { loopSec } = plan;
-      clearRollTimers();
+      if (replace) clearRollTimers();
+      let origin: number;
       try {
-        soundEngine.playMix(plan.parts, replace);
+        origin = soundEngine.playMix(plan.parts, replace, startAt);
       } catch {
         rollActive.current = false;
         showToast('ENGINE FAULT · CHECK AUDIO OUTPUT', 'error');
@@ -2436,23 +2449,26 @@ function Studio({ initialRecipe }: { initialRecipe: SoundRecipe }) {
       }
       setRollPlaying(true);
       const ticks = rollState.current.beats * 4;
+      const toMs = (at: number) => (at - soundEngine.audioTime()) * 1000;
       for (let i = 0; i < ticks; i++) {
-        rollTimers.current.push(window.setTimeout(() => setRollStep(i), ((i * loopSec) / ticks) * 1000));
+        queueRollTimer(() => setRollStep(i), toMs(origin + (i * loopSec) / ticks));
       }
-      rollTimers.current.push(
-        window.setTimeout(() => {
-          if (rollState.current.loopRoll) {
-            void playRollRef.current(false);
-          } else {
+      // Prepare the next bar before this one ends. Audio nodes then start on the audio clock,
+      // even if React or the browser delays a visual update near the bar line.
+      queueRollTimer(() => {
+        if (rollState.current.loopRoll) {
+          void playRollRef.current(false, origin + loopSec);
+        } else {
+          queueRollTimer(() => {
+            if (token !== rollToken.current) return;
             rollActive.current = false;
-            rollTimers.current = [];
             setRollStep(null);
             setRollPlaying(false);
-          }
-        }, loopSec * 1000),
-      );
+          }, toMs(origin + loopSec));
+        }
+      }, toMs(origin + loopSec - Math.min(0.35, loopSec / 4)));
     },
-    [buildMix, clearRollTimers, showToast],
+    [buildMix, clearRollTimers, queueRollTimer, showToast],
   );
 
   useEffect(() => {
@@ -2565,6 +2581,7 @@ function Studio({ initialRecipe }: { initialRecipe: SoundRecipe }) {
 
   /* ── Search ─────────────────────────────────────────────────────── */
   const [query, setQuery] = useState('');
+  const [showAllPresets, setShowAllPresets] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const handleScrub = useCallback(
@@ -2819,6 +2836,7 @@ function Studio({ initialRecipe }: { initialRecipe: SoundRecipe }) {
       return patterns.every((p) => p.test(haystack));
     });
   }, [activeCategory, favourites, kindFilter, lengthFilter, query]);
+  const displayedPresets = showAllPresets ? visiblePresets : visiblePresets.slice(0, 8);
   const activeTracks = tracks.filter((t) => !t.muted && t.steps.slice(0, beats * t.div).some((cell) => cell.length > 0)).length;
   const categoryCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -2851,10 +2869,10 @@ function Studio({ initialRecipe }: { initialRecipe: SoundRecipe }) {
   );
 
   return (
-    <div className="min-h-screen w-full bg-page px-3 py-6 text-ink-2 antialiased transition-colors duration-300 sm:px-6 sm:py-10">
+    <div className="min-h-screen w-full bg-page px-2.5 py-3 text-ink-2 antialiased transition-colors duration-300 sm:px-6 sm:py-10">
       <div className="relative mx-auto max-w-6xl select-none">
         {/* ── Header ─────────────────────────────────────────────────── */}
-        <header className="mb-6 flex flex-wrap items-center justify-between gap-4 px-1">
+        <header className="mb-3 flex flex-wrap items-center justify-between gap-3 px-1 sm:mb-6 sm:gap-4">
           <div className="flex items-center gap-3.5">
             <div className="relative flex h-11 w-11 items-center justify-center rounded-[14px] bg-accent text-accent-ink shadow-glow">
               <svg viewBox="0 0 24 24" aria-hidden className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
@@ -2914,9 +2932,157 @@ function Studio({ initialRecipe }: { initialRecipe: SoundRecipe }) {
           </div>
         </header>
 
+        <main className="flex flex-col">
+
+        {/* ── Preset matrix ──────────────────────────────────────────── */}
+        <Panel
+          className="mt-3 sm:mt-4"
+          title="Library"
+          right={
+            <label className="relative flex items-center">
+              <span className="sr-only">Search sounds</span>
+              <svg {...iconProps} className="pointer-events-none absolute left-3 h-3.5 w-3.5 text-ink-3">
+                <circle cx="11" cy="11" r="6.5" />
+                <path d="m20 20-4.2-4.2" />
+              </svg>
+              <input
+                ref={searchRef}
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setQuery('');
+                    e.currentTarget.blur();
+                  }
+                }}
+                placeholder={`Search ${PRESETS_CATALOG.length} sounds`}
+                className="h-9 w-[min(76vw,18rem)] rounded-full border border-line bg-inset pl-9 pr-9 text-[12.5px] text-ink shadow-well outline-none transition-all duration-200 ease-smooth placeholder:text-ink-3 focus:border-accent/50 focus:ring-4 focus:ring-accent/10 sm:w-64 sm:focus:w-72"
+              />
+              <span className="pointer-events-none absolute right-2.5">
+                <Kbd>/</Kbd>
+              </span>
+            </label>
+          }
+        >
+          <div role="tablist" aria-label="Sound banks" className="mb-3 flex flex-nowrap gap-1.5 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible">
+            {[ALL_BANK, FAV_BANK, ...CATEGORY_LIST].map((cat) => {
+              const meta = categoryMeta(cat);
+              const active = !searching && cat === activeCategory;
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  data-tip={CATEGORY_TIPS[cat]}
+                  onClick={() => {
+                    setQuery('');
+                    setActiveCategory(cat);
+                  }}
+                  className={`flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12.5px] font-medium outline-none transition-all duration-200 ease-smooth focus-visible:ring-2 focus-visible:ring-accent/50 active:scale-[0.97] ${
+                    active
+                      ? 'border-transparent bg-ink text-page shadow-raised'
+                      : 'border-line bg-raised text-ink-2 shadow-raised hover:border-line-strong hover:text-ink'
+                  }`}
+                >
+                  <span aria-hidden className="h-2 w-2 rounded-full" style={{ backgroundColor: meta.hex }} />
+                  {cat}
+                  <span className={`font-mono text-[10.5px] tabular-nums ${active ? 'opacity-60' : 'text-ink-3'}`}>
+                    {cat === ALL_BANK ? PRESETS_CATALOG.length : cat === FAV_BANK ? favourites.size : (categoryCounts.get(cat) ?? 0)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <FilterChips label="kind" options={KIND_FILTERS} value={kindFilter} onChange={setKindFilter} />
+            <FilterChips label="length" options={LENGTH_FILTERS} value={lengthFilter} onChange={setLengthFilter} />
+          </div>
+
+          <div role="tabpanel" className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {searching && visiblePresets.length > 0 && (
+              <div className="col-span-full text-[12px] text-ink-3">
+                {visiblePresets.length} result{visiblePresets.length === 1 ? '' : 's'} for “{query.trim()}” · Esc to clear
+              </div>
+            )}
+            {visiblePresets.length === 0 && (
+              <div className="col-span-full rounded-2xl border border-dashed border-line-strong py-10 text-center text-[12.5px] text-ink-3">
+                {searching
+                  ? `No sounds match “${query.trim()}”`
+                  : activeCategory === FAV_BANK && favourites.size === 0
+                    ? 'No favourites yet — tap the ☆ on any sound to keep it here.'
+                    : 'No sounds match these filters'}
+              </div>
+            )}
+            {displayedPresets.map((r) => {
+              const selected = r.id === recipe.id;
+              const meta = topologyMeta(r.topology);
+              const fav = favourites.has(r.id);
+              return (
+                <div key={r.id} className="group/card relative">
+                <button
+                  type="button"
+                  aria-pressed={selected}
+                  data-tip={r.description}
+                  onClick={() => selectRecipe(r, { play: true })}
+                  className={`group relative flex h-full min-h-[92px] w-full flex-col justify-between gap-2.5 rounded-2xl border p-3.5 text-left outline-none transition-all duration-200 ease-smooth focus-visible:ring-2 focus-visible:ring-accent/50 active:scale-[0.98] ${
+                    selected
+                      ? 'border-accent/60 bg-raised shadow-[0_0_0_3px_color-mix(in_oklab,var(--pf-accent)_18%,transparent),var(--pf-shadow-raised)]'
+                      : 'border-line bg-raised shadow-raised hover:-translate-y-0.5 hover:border-line-strong'
+                  }`}
+                >
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-1.5 font-mono text-[9.5px] text-ink-3">
+                      <span aria-hidden className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: meta.hex }} />
+                      {meta.code}
+                    </span>
+                    {selected ? (
+                      <span className="flex h-4 items-center gap-1 rounded-full bg-accent px-1.5 text-[9px] font-semibold text-accent-ink">
+                        <IconPlay className="h-2 w-2" />
+                        On
+                      </span>
+                    ) : (
+                      <span className="font-mono text-[9.5px] tabular-nums text-ink-3 opacity-0 transition-opacity group-hover:opacity-100">
+                        {pad2((CATALOG_INDEX.get(r.id) ?? 0) + 1)}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-[13px] font-semibold leading-snug tracking-[-0.01em] text-ink">{r.name}</span>
+                  <span className="truncate pr-7 text-[11.5px] text-ink-3">{r.tag}</span>
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={fav}
+                  aria-label={fav ? `Remove ${r.name} from favourites` : `Add ${r.name} to favourites`}
+                  data-tip={fav ? 'Remove from favourites.' : 'Save to favourites.'}
+                  onClick={() => toggleFavourite(r.id)}
+                  className={`absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-full outline-none transition-all duration-200 ease-smooth hover:bg-inset focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-accent/50 active:scale-90 ${
+                    fav ? 'text-[#F59E0B]' : 'text-ink-3 opacity-40 hover:text-ink group-hover/card:opacity-100'
+                  }`}
+                >
+                  <IconStar filled={fav} className="h-3.5 w-3.5" />
+                </button>
+                </div>
+              );
+            })}
+          </div>
+          {visiblePresets.length > displayedPresets.length && (
+            <button type="button" onClick={() => setShowAllPresets(true)} className="mt-3 w-full rounded-full bg-raised px-4 py-2.5 text-[12.5px] font-semibold text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-accent">
+              Show all {visiblePresets.length} sounds
+            </button>
+          )}
+          {showAllPresets && visiblePresets.length > 8 && (
+            <button type="button" onClick={() => setShowAllPresets(false)} className="mt-3 w-full rounded-full px-4 py-2 text-[12px] text-ink-2 underline underline-offset-2">
+              Show fewer sounds
+            </button>
+          )}
+        </Panel>
+
         {/* ── Display + XY pad ───────────────────────────────────────── */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-          <section className="relative flex min-h-[380px] flex-col rounded-[26px] bg-[#141518] p-2 shadow-panel ring-1 ring-black/20">
+          <section className="relative flex min-h-[250px] flex-col rounded-[26px] bg-[#141518] p-2 shadow-panel ring-1 ring-black/20 sm:min-h-[380px]">
             <div className="relative flex flex-1 flex-col overflow-hidden rounded-[20px] bg-display shadow-[inset_0_2px_14px_rgba(0,0,0,0.9)]">
               <div className="relative z-10 flex items-center justify-between gap-3 px-4 pb-2 pt-3.5">
                 <div className="min-w-0">
@@ -2949,7 +3115,7 @@ function Studio({ initialRecipe }: { initialRecipe: SoundRecipe }) {
                 </span>
               </div>
 
-              <div className="relative min-h-[190px] flex-1">
+              <div className="relative min-h-[100px] flex-1 sm:min-h-[190px]">
                 <OledVisualizer signalLedRef={signalLedRef} />
 
                 {toast && (
@@ -3428,141 +3594,9 @@ function Studio({ initialRecipe }: { initialRecipe: SoundRecipe }) {
           </div>
         </Panel>
 
-        {/* ── Preset matrix ──────────────────────────────────────────── */}
-        <Panel
-          className="mt-4"
-          title="Library"
-          right={
-            <label className="relative flex items-center">
-              <span className="sr-only">Search sounds</span>
-              <svg {...iconProps} className="pointer-events-none absolute left-3 h-3.5 w-3.5 text-ink-3">
-                <circle cx="11" cy="11" r="6.5" />
-                <path d="m20 20-4.2-4.2" />
-              </svg>
-              <input
-                ref={searchRef}
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') {
-                    setQuery('');
-                    e.currentTarget.blur();
-                  }
-                }}
-                placeholder={`Search ${PRESETS_CATALOG.length} sounds`}
-                className="h-9 w-56 rounded-full border border-line bg-inset pl-9 pr-9 text-[12.5px] text-ink shadow-well outline-none transition-all duration-200 ease-smooth placeholder:text-ink-3 focus:w-64 focus:border-accent/50 focus:ring-4 focus:ring-accent/10 sm:w-64 sm:focus:w-72"
-              />
-              <span className="pointer-events-none absolute right-2.5">
-                <Kbd>/</Kbd>
-              </span>
-            </label>
-          }
-        >
-          <div role="tablist" aria-label="Sound banks" className="mb-3 flex flex-wrap gap-1.5">
-            {[ALL_BANK, FAV_BANK, ...CATEGORY_LIST].map((cat) => {
-              const meta = categoryMeta(cat);
-              const active = !searching && cat === activeCategory;
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  data-tip={CATEGORY_TIPS[cat]}
-                  onClick={() => {
-                    setQuery('');
-                    setActiveCategory(cat);
-                  }}
-                  className={`flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12.5px] font-medium outline-none transition-all duration-200 ease-smooth focus-visible:ring-2 focus-visible:ring-accent/50 active:scale-[0.97] ${
-                    active
-                      ? 'border-transparent bg-ink text-page shadow-raised'
-                      : 'border-line bg-raised text-ink-2 shadow-raised hover:border-line-strong hover:text-ink'
-                  }`}
-                >
-                  <span aria-hidden className="h-2 w-2 rounded-full" style={{ backgroundColor: meta.hex }} />
-                  {cat}
-                  <span className={`font-mono text-[10.5px] tabular-nums ${active ? 'opacity-60' : 'text-ink-3'}`}>
-                    {cat === ALL_BANK ? PRESETS_CATALOG.length : cat === FAV_BANK ? favourites.size : (categoryCounts.get(cat) ?? 0)}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
 
-          <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
-            <FilterChips label="kind" options={KIND_FILTERS} value={kindFilter} onChange={setKindFilter} />
-            <FilterChips label="length" options={LENGTH_FILTERS} value={lengthFilter} onChange={setLengthFilter} />
-          </div>
 
-          <div role="tabpanel" className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {searching && visiblePresets.length > 0 && (
-              <div className="col-span-full text-[12px] text-ink-3">
-                {visiblePresets.length} result{visiblePresets.length === 1 ? '' : 's'} for “{query.trim()}” · Esc to clear
-              </div>
-            )}
-            {visiblePresets.length === 0 && (
-              <div className="col-span-full rounded-2xl border border-dashed border-line-strong py-10 text-center text-[12.5px] text-ink-3">
-                {searching
-                  ? `No sounds match “${query.trim()}”`
-                  : activeCategory === FAV_BANK && favourites.size === 0
-                    ? 'No favourites yet — tap the ☆ on any sound to keep it here.'
-                    : 'No sounds match these filters'}
-              </div>
-            )}
-            {visiblePresets.map((r) => {
-              const selected = r.id === recipe.id;
-              const meta = topologyMeta(r.topology);
-              const fav = favourites.has(r.id);
-              return (
-                <div key={r.id} className="group/card relative">
-                <button
-                  type="button"
-                  aria-pressed={selected}
-                  data-tip={r.description}
-                  onClick={() => selectRecipe(r, { play: true })}
-                  className={`group relative flex h-full min-h-[92px] w-full flex-col justify-between gap-2.5 rounded-2xl border p-3.5 text-left outline-none transition-all duration-200 ease-smooth focus-visible:ring-2 focus-visible:ring-accent/50 active:scale-[0.98] ${
-                    selected
-                      ? 'border-accent/60 bg-raised shadow-[0_0_0_3px_color-mix(in_oklab,var(--pf-accent)_18%,transparent),var(--pf-shadow-raised)]'
-                      : 'border-line bg-raised shadow-raised hover:-translate-y-0.5 hover:border-line-strong'
-                  }`}
-                >
-                  <span className="flex items-center justify-between gap-2">
-                    <span className="flex items-center gap-1.5 font-mono text-[9.5px] text-ink-3">
-                      <span aria-hidden className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: meta.hex }} />
-                      {meta.code}
-                    </span>
-                    {selected ? (
-                      <span className="flex h-4 items-center gap-1 rounded-full bg-accent px-1.5 text-[9px] font-semibold text-accent-ink">
-                        <IconPlay className="h-2 w-2" />
-                        On
-                      </span>
-                    ) : (
-                      <span className="font-mono text-[9.5px] tabular-nums text-ink-3 opacity-0 transition-opacity group-hover:opacity-100">
-                        {pad2((CATALOG_INDEX.get(r.id) ?? 0) + 1)}
-                      </span>
-                    )}
-                  </span>
-                  <span className="text-[13px] font-semibold leading-snug tracking-[-0.01em] text-ink">{r.name}</span>
-                  <span className="truncate pr-7 text-[11.5px] text-ink-3">{r.tag}</span>
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={fav}
-                  aria-label={fav ? `Remove ${r.name} from favourites` : `Add ${r.name} to favourites`}
-                  data-tip={fav ? 'Remove from favourites.' : 'Save to favourites.'}
-                  onClick={() => toggleFavourite(r.id)}
-                  className={`absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-full outline-none transition-all duration-200 ease-smooth hover:bg-inset focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-accent/50 active:scale-90 ${
-                    fav ? 'text-[#F59E0B]' : 'text-ink-3 opacity-40 hover:text-ink group-hover/card:opacity-100'
-                  }`}
-                >
-                  <IconStar filled={fav} className="h-3.5 w-3.5" />
-                </button>
-                </div>
-              );
-            })}
-          </div>
-        </Panel>
+        </main>
 
         {/* ── Footer legend ──────────────────────────────────────────── */}
         <footer className="mt-6 flex flex-wrap items-center justify-between gap-3 px-1 pb-2 text-[11.5px] text-ink-3">

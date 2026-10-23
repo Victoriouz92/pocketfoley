@@ -5,7 +5,7 @@
  * - Google Fonts: cached once, then served from cache.
  * Bump CACHE when this file's strategy changes; old caches are deleted on activate.
  */
-const CACHE = 'pocketfoley-v1';
+const CACHE = 'pocketfoley-v2';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {

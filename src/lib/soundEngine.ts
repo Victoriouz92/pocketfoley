@@ -1976,15 +1976,22 @@ export class PocketFoleyEngine {
    * pile into the clipper. `replace` stops whatever is sounding first; loop repeats pass false so the
    * previous bar's tails ring into the next.
    */
-  public playMix(parts: MixPart[], replace = true): void {
+  /** The audio clock drives pattern repeats; a UI timer only prepares them ahead of time. */
+  public audioTime(): number {
+    return this.ensureContext().currentTime;
+  }
+
+  public playMix(parts: MixPart[], replace = true, startAt?: number): number {
     const ctx = this.ensureContext();
-    if (!this.liveMaster) return;
+    if (!this.liveMaster) throw new Error('Audio output unavailable');
     const t = ctx.currentTime;
     if (replace) this.stopAll();
     else this.liveVoices = this.liveVoices.filter((v) => v.end > t);
-    for (const voice of this.scheduleMix(ctx, this.liveMaster, parts, t + LIVE_LATENCY_SEC, 1 / 0.8)) {
+    const origin = Math.max(t + 0.04, startAt ?? 0);
+    for (const voice of this.scheduleMix(ctx, this.liveMaster, parts, origin, 1 / 0.8)) {
       this.trackVoice(voice, t);
     }
+    return origin;
   }
 
   /** Renders a multi-track mix offline (pattern export). */
