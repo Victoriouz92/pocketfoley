@@ -14,6 +14,13 @@ It installs like a regular app and then works offline:
 - **Android (Chrome):** menu → Install app, or the *Install app* button in PocketFoley
 - **Windows / Mac (Chrome or Edge):** the install icon in the address bar, or the *Install app* button
 
+## Using your exported sounds
+
+You may use WAV files you create with PocketFoley in personal and commercial
+projects, including games, videos, podcasts and streams. Credit to VV Labs is
+appreciated but not required. This permission covers exported sounds, not the
+PocketFoley application or its source code.
+
 ## Development
 
 ```bash
