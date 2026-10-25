@@ -2888,6 +2888,9 @@ function Studio({ initialRecipe }: { initialRecipe: SoundRecipe }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            <button type="button" onClick={() => document.getElementById('pocketfoley-guide')?.scrollIntoView({ block: 'start' })} className="rounded-full border border-line bg-panel px-3.5 py-2 text-[12px] font-medium text-ink-2 outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent/50">
+              Quick guide
+            </button>
             <InstallButton onHint={(text) => showToast(text, 'warn')} />
             <div className="flex items-center gap-3 rounded-full border border-line bg-panel px-3.5 py-2 shadow-raised">
               <span className="flex items-center gap-1.5" data-tip="Lights up while sound is playing.">

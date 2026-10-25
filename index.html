@@ -5,9 +5,60 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#08090b" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#e8e4da" media="(prefers-color-scheme: light)" />
-    <meta name="description" content="Procedural sound effects studio for creators. Produced by VV Labs." />
+    <meta name="description" content="Create sound effects in your browser with PocketFoley: shape synthesized sounds, arrange three-track patterns and export 48 kHz WAV files. By VV Labs." />
     <meta name="author" content="VV Labs" />
-    <title>PocketFoley · VV Labs</title>
+    <title>PocketFoley — Browser Sound Effects Studio &amp; WAV Export | VV Labs</title>
+    <link rel="canonical" href="https://victoriouz92.github.io/pocketfoley/" />
+    <link rel="sitemap" type="application/xml" href="./sitemap.xml" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="PocketFoley by VV Labs" />
+    <meta property="og:title" content="PocketFoley — Browser Sound Effects Studio" />
+    <meta property="og:description" content="Shape synthesized sounds, build three-track patterns and export 48 kHz WAV files in your browser." />
+    <meta property="og:url" content="https://victoriouz92.github.io/pocketfoley/" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://victoriouz92.github.io/pocketfoley/icons/icon-512.png" />
+    <meta property="og:image:alt" content="PocketFoley app icon" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="PocketFoley — Browser Sound Effects Studio" />
+    <meta name="twitter:description" content="Shape synthesized sounds, build three-track patterns and export 48 kHz WAV files in your browser." />
+    <meta name="twitter:image" content="https://victoriouz92.github.io/pocketfoley/icons/icon-512.png" />
+    <meta name="twitter:image:alt" content="PocketFoley app icon" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://www.vvlabs.eu/#organization",
+            "name": "VV Labs",
+            "url": "https://www.vvlabs.eu/"
+          },
+          {
+            "@type": "WebApplication",
+            "@id": "https://victoriouz92.github.io/pocketfoley/#app",
+            "name": "PocketFoley",
+            "url": "https://victoriouz92.github.io/pocketfoley/",
+            "description": "Browser sound effects studio with synthesized sounds, a three-track pattern maker and 48 kHz WAV export.",
+            "applicationCategory": "MultimediaApplication",
+            "operatingSystem": "Modern web browser",
+            "browserRequirements": "Requires JavaScript and Web Audio support",
+            "inLanguage": "en",
+            "image": "https://victoriouz92.github.io/pocketfoley/icons/icon-512.png",
+            "featureList": ["Procedural sound synthesis", "Sound shaping and modulation", "Three-track pattern maker", "48 kHz WAV export", "Installable web app"],
+            "publisher": { "@id": "https://www.vvlabs.eu/#organization" }
+          },
+          {
+            "@type": "WebPage",
+            "@id": "https://victoriouz92.github.io/pocketfoley/#webpage",
+            "url": "https://victoriouz92.github.io/pocketfoley/",
+            "name": "PocketFoley — Browser Sound Effects Studio & WAV Export",
+            "inLanguage": "en",
+            "mainEntity": { "@id": "https://victoriouz92.github.io/pocketfoley/#app" }
+          }
+        ]
+      }
+    </script>
 
     <!-- Installable app (iPhone, Android, desktop) -->
     <link rel="manifest" href="./manifest.webmanifest" />
@@ -33,7 +84,54 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <header class="pf-loading">
+        <h1>PocketFoley — sound effects studio</h1>
+        <p>The studio is loading. <a href="#pocketfoley-guide">Read the quick guide</a> while you wait.</p>
+        <noscript><p>Enable JavaScript to synthesize, play and export sounds. The guide below is available without JavaScript.</p></noscript>
+      </header>
+    </div>
+    <section id="pocketfoley-guide" class="pf-guide" aria-labelledby="guide-title">
+      <header>
+        <p class="pf-guide-kicker">PocketFoley by VV Labs · Quick guide</p>
+        <h2 id="guide-title">Make a sound for the moment you need</h2>
+        <p>Create sound effects for games, videos, podcasts and streams in your browser. Start with a sound from the library, change its character by ear, then export a WAV file. PocketFoley synthesizes sounds rather than playing a collection of recorded samples.</p>
+      </header>
+      <div class="pf-guide-grid">
+        <article>
+          <h3>1. Choose a starting sound</h3>
+          <p>Search the library or browse categories such as UI &amp; Apps, Cinematic &amp; Reels, Drums &amp; Beats, Footsteps, Bells &amp; Chimes and Sci-Fi &amp; Glitch. Select a sound and press Play to hear it. Star useful sounds to find them again in Favourites.</p>
+        </article>
+        <article>
+          <h3>2. Shape it by ear</h3>
+          <p>Adjust pitch, attack and speed to change how the sound starts, how high it plays and how long it lasts. Try the sound morph pad, filter and modulation controls to explore variations. Use Undo if a change takes you away from the sound you want.</p>
+        </article>
+        <article>
+          <h3>3. Build a three-track pattern</h3>
+          <p>Open Pattern to arrange notes across three tracks. Choose a sound for each track, set the tempo, and add notes in the piano roll. Mute a track to leave it out of playback and export. Use the pattern controls when you need a short beat, melody or layered effect.</p>
+        </article>
+        <article>
+          <h3>4. Export a WAV file</h3>
+          <p>Export the current sound or your pattern as a 48 kHz WAV file. Import it into your game engine, video editor or audio workstation, then adjust its level in the context of your project. Playback and export need a browser with Web Audio support.</p>
+        </article>
+      </div>
+      <h3>Common questions</h3>
+      <details>
+        <summary>Can I use exported sounds in commercial projects?</summary>
+        <p>Yes. You may use WAV files you create with PocketFoley in personal and commercial projects, including games, videos, podcasts and streams. Credit to VV Labs is appreciated but not required. This permission covers exported sounds, not the application or its source code. See the <a href="https://github.com/Victoriouz92/pocketfoley#using-your-exported-sounds">project usage terms</a>.</p>
+      </details>
+      <details>
+        <summary>Can I install PocketFoley and use it offline?</summary>
+        <p>PocketFoley is an installable web app. On iPhone or iPad, use Safari's Share menu and Add to Home Screen. On Android or desktop, use the browser's install option when available. Load the app online first; offline reopening depends on the app and its assets remaining in your browser's storage.</p>
+      </details>
+      <details>
+        <summary>Why is there no sound?</summary>
+        <p>Press Play after opening the app so the browser can start audio in response to your action. Check device volume and any muted tracks. If audio is still unavailable, try a current browser that supports Web Audio.</p>
+      </details>
+      <footer>
+        <p>Made by <a href="https://www.vvlabs.eu/">VV Labs</a>. Explore <a href="https://www.vvlabs.eu/projects/pocketfoley">PocketFoley's project page</a> or <a href="https://github.com/Victoriouz92/pocketfoley">the GitHub repository</a>.</p>
+      </footer>
+    </section>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

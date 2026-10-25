@@ -1,5 +1,25 @@
 @import "tailwindcss";
 
+.pf-loading, .pf-guide {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 2rem max(1.25rem, env(safe-area-inset-right)) 3rem max(1.25rem, env(safe-area-inset-left));
+  line-height: 1.7;
+}
+.pf-guide { border-top: 1px solid var(--pf-line-strong); color: var(--pf-ink-2); scroll-margin-top: 1rem; }
+.pf-guide h2, .pf-loading h1 { color: var(--pf-ink); font-size: clamp(1.5rem, 4vw, 2rem); font-weight: 600; line-height: 1.25; margin: .5rem 0 1rem; }
+.pf-guide h3 { color: var(--pf-ink); font-size: 1.1rem; font-weight: 600; margin: 1.25rem 0 .5rem; }
+.pf-guide p { margin: .5rem 0 1rem; }
+.pf-guide-kicker { font-size: .8rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.pf-guide-grid { display: grid; gap: 0 2.5rem; margin: 1rem 0 2rem; }
+.pf-guide details { border-bottom: 1px solid var(--pf-line-strong); padding: 1rem 0; }
+.pf-guide summary { color: var(--pf-ink); cursor: pointer; font-weight: 500; }
+.pf-guide details p { margin-top: .75rem; }
+.pf-guide a, .pf-loading a { color: var(--pf-ink); text-decoration: underline; text-underline-offset: .2em; }
+.pf-guide :focus-visible, .pf-loading :focus-visible { outline: 2px solid var(--pf-accent); outline-offset: 4px; }
+.pf-guide footer { margin-top: 2rem; font-size: .875rem; }
+@media (min-width: 700px) { .pf-guide-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
 /*
  * Design tokens. Components only use these semantic names (bg-panel, text-ink-2, shadow-raised…),
  * so a theme is a single block of values below. The OLED display stays dark in both themes on
